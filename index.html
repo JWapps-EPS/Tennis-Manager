@@ -183,9 +183,14 @@ footer{text-align:center; padding:18px; font-size:11px; color:#9b9684; font-fami
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">
-      <h1 class="name" id="clubName">Club de Tennis</h1>
-      <span class="tag">PLANNING &amp; APPEL</span>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+      <div class="brand">
+        <h1 class="name" id="clubName">Club de Tennis</h1>
+        <span class="tag">PLANNING &amp; APPEL</span>
+      </div>
+      <button onclick="actualiser()" id="refreshBtn" title="Actualiser les données" style="background:rgba(245,242,232,.12); border:1.5px solid rgba(245,242,232,.25) !important; color:var(--chalk); padding:7px 12px; border-radius:8px; font-size:12px; font-family:'Work Sans',sans-serif; font-weight:600; display:flex; align-items:center; gap:6px; cursor:pointer; transition:.15s;">
+        <span id="refreshIcon">🔄</span> Actualiser
+      </button>
     </div>
     <nav class="tabs" id="mainTabs"></nav>
   </div>
@@ -1345,6 +1350,18 @@ async function chargerArchive(season){
   renderApp();
 }
 /* ====================== INIT ====================== */
+async function actualiser(){
+  const btn = document.getElementById('refreshBtn');
+  const icon = document.getElementById('refreshIcon');
+  if(btn) btn.style.opacity='.5';
+  if(icon) icon.style.animation='spin .7s linear infinite';
+  const style = document.createElement('style');
+  style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+  document.head.appendChild(style);
+  await loadAll();
+  if(btn) btn.style.opacity='1';
+  if(icon){ icon.style.animation=''; }
+}
 loadAll();
 </script>
 </body>
