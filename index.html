@@ -225,7 +225,7 @@ let UI = {
   adminSubtab: 'reglages',
   editingCreneau: null,
   editingEleve: null,
-  affFiltres: { nom:'', annee:'', niveau:'', sexe:'', creneau:'' },
+  affFiltres: { nom:'', annee:'', niveau:'', sexe:'', creneau:'', categorie:'' },
   lastAutoReport: null,
   loading: false,
   archivesList: [],
@@ -1177,6 +1177,7 @@ function renderAdminAffectations(){
   if(f.annee) elevesAffiches = elevesAffiches.filter(e=> String(e.annee_naissance)===f.annee);
   if(f.niveau) elevesAffiches = elevesAffiches.filter(e=> e.niveau===f.niveau);
   if(f.sexe) elevesAffiches = elevesAffiches.filter(e=> e.sexe===f.sexe);
+  if(f.categorie) elevesAffiches = elevesAffiches.filter(e=> f.categorie==='adulte' ? isAdulte(e) : !isAdulte(e));
   if(f.creneau==='non_affecte') elevesAffiches = elevesAffiches.filter(e=> !DB.Affectations.find(a=>a.eleve_id===e.id));
   else if(f.creneau) elevesAffiches = elevesAffiches.filter(e=> DB.Affectations.find(a=>a.eleve_id===e.id && a.creneau_id===f.creneau));
 
@@ -1208,6 +1209,14 @@ function renderAdminAffectations(){
         </select>
       </div>
       <div class="field" style="margin:0;">
+        <label>Catégorie</label>
+        <select onchange="UI.affFiltres.categorie=this.value; renderApp();">
+          <option value="">Tous</option>
+          <option value="adulte" ${f.categorie==='adulte'?'selected':''}>🧑 Adultes</option>
+          <option value="enfant" ${f.categorie==='enfant'?'selected':''}>🧒 Enfants</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0;">
         <label>Sexe</label>
         <select onchange="UI.affFiltres.sexe=this.value; renderApp();">
           <option value="">Tous</option>
@@ -1226,7 +1235,7 @@ function renderAdminAffectations(){
           }).join('')}
         </select>
       </div>
-      ${nbFiltres?`<button class="btn btn-ghost btn-sm" onclick="UI.affFiltres={nom:'',annee:'',niveau:'',sexe:'',creneau:''}; renderApp();">✕ Effacer les filtres</button>`:''}
+      ${nbFiltres?`<button class="btn btn-ghost btn-sm" onclick="UI.affFiltres={nom:'',annee:'',niveau:'',sexe:'',creneau:'',categorie:''}; renderApp();">✕ Effacer les filtres</button>`:''}
     </div>
   </div>
 
