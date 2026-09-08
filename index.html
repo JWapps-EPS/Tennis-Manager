@@ -45,7 +45,7 @@ header.top::before{
 .brand{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
 .brand .name{font-size:26px; font-weight:700; margin:0;}
 .brand .tag{font-family:'JetBrains Mono',monospace; font-size:11px; opacity:.65; letter-spacing:.08em;}
-nav.tabs{display:flex; gap:2px; margin-top:16px;}
+nav.tabs{display:flex; gap:2px; margin-top:16px; overflow-x:auto; -webkit-overflow-scrolling:touch;}
 nav.tabs button{
   flex:1; background:rgba(245,242,232,.08); color:var(--chalk);
   padding:13px 10px; font-family:'Oswald',sans-serif; font-weight:600;
@@ -148,7 +148,7 @@ td{padding:7px 8px; border-bottom:1px solid #ede9da; vertical-align:middle;}
 .add-seance-btn{width:34px; height:34px; border-radius:50%; background:var(--court); color:#fff; font-size:20px; line-height:1;}
 
 /* SUBTABS */
-.subtabs{display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap;}
+.subtabs{display:flex; gap:6px; margin-bottom:18px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; -webkit-overflow-scrolling:touch;}
 .subtabs button{padding:8px 14px; border-radius:6px; background:#f1eee2; font-size:12px; font-weight:600; font-family:'Oswald',sans-serif; letter-spacing:.03em; text-transform:uppercase;}
 .subtabs button.active{background:var(--clay); color:#fff;}
 
@@ -158,6 +158,65 @@ td{padding:7px 8px; border-bottom:1px solid #ede9da; vertical-align:middle;}
 .banner-err{background:#fbe6e3; border:1px solid var(--danger); color:#8a261b;}
 
 footer{text-align:center; padding:18px; font-size:11px; color:#9b9684; font-family:'JetBrains Mono',monospace;}
+
+/* ===== RESPONSIVE MOBILE ===== */
+@media(max-width:640px){
+  /* Header */
+  .top-inner > div:first-child { flex-direction:column; align-items:flex-start; gap:4px; }
+  .brand .name { font-size:20px; }
+  #refreshBtn span:last-child { display:none; } /* cacher le texte "Actualiser", garder l'icône */
+  #refreshBtn { padding:7px 9px; }
+
+  /* Onglets principaux : icônes + texte court */
+  nav.tabs button { font-size:11px; padding:10px 6px; letter-spacing:0; }
+
+  /* Main */
+  main { padding:14px 10px 60px; }
+
+  /* Cards */
+  .card { padding:14px 12px; }
+  .card h2 { font-size:15px; }
+
+  /* Formulaires : champs pleine largeur */
+  .row { flex-direction:column; }
+  .field { width:100%; }
+  .field input, .field select, .field textarea { font-size:16px; } /* évite le zoom auto iOS */
+
+  /* Boutons en ligne */
+  .btn { font-size:13px; }
+  .subtabs { gap:4px; }
+  .subtabs button { font-size:11px; padding:7px 9px; }
+
+  /* Day pills planning */
+  .day-pills button { padding:7px 10px; font-size:11px; }
+
+  /* Cartes créneaux espace prof */
+  .creneau-cards { grid-template-columns:1fr !important; }
+  .creneau-card .cc-time { font-size:18px; }
+
+  /* Vue semaine : 1 colonne sur mobile */
+  .print-grid { grid-template-columns:1fr !important; }
+  .mercredi-col { grid-column:span 1 !important; }
+
+  /* Tableaux : scroll horizontal */
+  .scroll-x { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table { min-width:500px; }
+
+  /* Login box */
+  .login-box { margin:30px auto; padding:0 10px; }
+
+  /* Jauge appel */
+  .gauge-label { font-size:12px; }
+
+  /* Feuille d'appel : réduire les cellules */
+  .seance-cell { width:28px; height:26px; font-size:12px; }
+  .add-seance-btn { width:30px; height:30px; font-size:18px; }
+}
+
+@media(max-width:400px){
+  nav.tabs button { font-size:10px; padding:9px 4px; }
+  .brand .name { font-size:17px; }
+}
 
 @media print {
   @page { size:A4 landscape; margin:10mm; }
