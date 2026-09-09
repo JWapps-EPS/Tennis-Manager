@@ -752,7 +752,9 @@ function selectCreneauProf(id){
 }
 
 let _smsTimer = null;
+let _smsFired = false;
 function startSmsGroupe(creneauId){
+  _smsFired = false;
   const bar = document.getElementById('smsBtnProgress');
   if(bar){
     bar.style.transition = 'none';
@@ -762,12 +764,15 @@ function startSmsGroupe(creneauId){
       bar.style.width = '100%';
     }));
   }
-  _smsTimer = setTimeout(()=>{ ouvrirModalSmsGroupe(creneauId); }, 2000);
+  _smsTimer = setTimeout(()=>{
+    _smsFired = true;
+    ouvrirModalSmsGroupe(creneauId);
+  }, 2000);
 }
 function cancelSmsGroupe(){
-  clearTimeout(_smsTimer);
+  if(!_smsFired) clearTimeout(_smsTimer);
   const bar = document.getElementById('smsBtnProgress');
-  if(bar){ bar.style.transition='none'; bar.style.width='0%'; }
+  if(bar && !_smsFired){ bar.style.transition='none'; bar.style.width='0%'; }
 }
 function ouvrirModalSmsGroupe(creneauId){
   const eleves = elevesDuCreneau(creneauId).filter(e=>e.telephone);
@@ -824,9 +829,12 @@ function copierNumeros(numeros){
 
 // Tooltip téléphone sur appui long (500ms)
 let _longPressTimer = null;
+let _longPressFired = false;
 let _tooltip = null;
 function startLongPress(eleveId){
+  _longPressFired = false;
   _longPressTimer = setTimeout(()=>{
+    _longPressFired = true;
     const el = eleveById(eleveId);
     if(!el) return;
     const tel = el.telephone || '';
@@ -861,7 +869,7 @@ function startLongPress(eleveId){
     setTimeout(()=>{ if(_tooltip){ _tooltip.remove(); _tooltip=null; }}, 3000);
   }, 2000);
 }
-function cancelLongPress(){ clearTimeout(_longPressTimer); }
+function cancelLongPress(){ if(!_longPressFired) clearTimeout(_longPressTimer); }
 
 function renderFeuilleAppel(creneauId){
   const c = creneauById(creneauId);
