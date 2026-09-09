@@ -670,62 +670,70 @@ function renderProf(){
     return;
   }
 
-  // Jours ayant au moins un créneau
   const joursActifs = JOURS.filter(j=> DB.Planning.some(c=>c.jour===j));
   if(!UI.profDay || !joursActifs.includes(UI.profDay)) UI.profDay = joursActifs[0] || JOURS[0];
+  const creneauOuvert = UI.profSelectedCreneau && DB.Planning.find(c=>c.id===UI.profSelectedCreneau && c.jour===UI.profDay);
 
-  let html = `
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
-      <div>
-        <h2 style="margin:0; font-family:'Oswald',sans-serif; font-size:22px; color:var(--court-dark); text-transform:uppercase;">Espace professeurs</h2>
-        <p class="muted" style="margin:2px 0 0;">Sélectionnez un cours pour faire l'appel</p>
+  let html = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+    <div>
+      <h2 style="margin:0; font-family:'Oswald',sans-serif; font-size:22px; color:var(--court-dark); text-transform:uppercase;">Espace professeurs</h2>
+      <p class="muted" style="margin:2px 0 0;">${creneauOuvert ? 'Appel en cours' : 'Sélectionnez un cours pour faire l\'appel'}</p>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="profLogout()">Déconnexion</button>
+  </div>`;
+
+  if(creneauOuvert){
+    // MODE APPEL : on n'affiche QUE la feuille d'appel + un bouton retour en haut
+    const c = DB.Planning.find(x=>x.id===UI.profSelectedCreneau);
+    const prof = profById(c.prof_id);
+    html += `<div style="display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="selectCreneauProf(null)" style="display:flex; align-items:center; gap:6px;">
+        ← Retour aux cours
+      </button>
+      <div style="background:var(--court); color:var(--chalk); border-radius:8px; padding:7px 14px; font-family:'Oswald',sans-serif; font-size:14px; text-transform:uppercase; letter-spacing:.04em;">
+        ${c.jour} ${c.heure_debut}→${heureFin(c.heure_debut,c.duree)} · ${c.niveau||''} · ${prof?prof.nom:'—'}
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="profLogout()">Déconnexion</button>
     </div>`;
-
-  // Navigation par jour
-  html += `<div class="prof-day-nav">`;
-  joursActifs.forEach(j=>{
-    const nb = DB.Planning.filter(c=>c.jour===j).length;
-    html += `<button class="prof-day-btn ${UI.profDay===j?'active':''}" onclick="setProfDay('${j}')">
-      ${j}<br><span class="nb">${nb} cours</span>
-    </button>`;
-  });
-  html += `</div>`;
-
-  // Cartes créneaux du jour sélectionné
-  const creneauxDuJour = DB.Planning.filter(c=>c.jour===UI.profDay)
-    .sort((a,b)=>a.heure_debut.localeCompare(b.heure_debut));
-
-  if(creneauxDuJour.length===0){
-    html += `<p class="muted">Aucun cours configuré ce jour.</p>`;
+    html += renderFeuilleAppel(UI.profSelectedCreneau);
   } else {
-    html += `<div class="creneau-cards">`;
-    creneauxDuJour.forEach(c=>{
-      const prof = profById(c.prof_id);
-      const seances = DB.Seances.filter(s=>s.creneau_id===c.id);
-      const objectif = Number(cfg('objectif_seances',30));
-      const fait = seances.length;
-      const pct = Math.min(100, Math.round(100*fait/objectif));
-      const nbEleves = elevesDuCreneau(c.id).length;
-      const selected = UI.profSelectedCreneau===c.id;
-      html += `<div class="creneau-card ${selected?'selected':''}" onclick="selectCreneauProf('${c.id}')">
-        <div class="cc-time">${c.heure_debut} <span style="font-size:14px; opacity:.6;">→ ${heureFin(c.heure_debut,c.duree)}</span></div>
-        <div class="cc-dur">${c.duree==90?'1h30':'1h00'}</div>
-        <div class="cc-niv">${c.niveau||'Niveau non défini'}</div>
-        <div class="cc-prof">👤 ${prof?prof.nom:'Prof non assigné'} &nbsp;·&nbsp; 🎾 ${nbEleves} élève${nbEleves>1?'s':''}</div>
-        <div class="cc-footer">
-          <div class="cc-gauge-mini"><div class="cc-gauge-mini-fill" style="width:${pct}%"></div></div>
-          <span class="cc-seances-count">${fait}/${objectif} séances</span>
-        </div>
-      </div>`;
+    // MODE SÉLECTION : navigation par jour + cartes créneaux
+    html += `<div class="prof-day-nav">`;
+    joursActifs.forEach(j=>{
+      const nb = DB.Planning.filter(c=>c.jour===j).length;
+      html += `<button class="prof-day-btn ${UI.profDay===j?'active':''}" onclick="setProfDay('${j}')">
+        ${j}<br><span class="nb">${nb} cours</span>
+      </button>`;
     });
     html += `</div>`;
-  }
 
-  // Feuille d'appel si un créneau est sélectionné
-  if(UI.profSelectedCreneau && DB.Planning.find(c=>c.id===UI.profSelectedCreneau && c.jour===UI.profDay)){
-    html += renderFeuilleAppel(UI.profSelectedCreneau);
+    const creneauxDuJour = DB.Planning.filter(c=>c.jour===UI.profDay)
+      .sort((a,b)=>a.heure_debut.localeCompare(b.heure_debut));
+
+    if(creneauxDuJour.length===0){
+      html += `<p class="muted">Aucun cours configuré ce jour.</p>`;
+    } else {
+      html += `<div class="creneau-cards">`;
+      creneauxDuJour.forEach(c=>{
+        const prof = profById(c.prof_id);
+        const seances = DB.Seances.filter(s=>s.creneau_id===c.id);
+        const objectif = Number(cfg('objectif_seances',30));
+        const fait = seances.length;
+        const pct = Math.min(100, Math.round(100*fait/objectif));
+        const nbEleves = elevesDuCreneau(c.id).length;
+        html += `<div class="creneau-card" onclick="selectCreneauProf('${c.id}')">
+          <div class="cc-time">${c.heure_debut} <span style="font-size:14px; opacity:.6;">→ ${heureFin(c.heure_debut,c.duree)}</span></div>
+          <div class="cc-dur">${c.duree==90?'1h30':'1h00'}</div>
+          <div class="cc-niv">${c.niveau||'Niveau non défini'}</div>
+          <div class="cc-prof">👤 ${prof?prof.nom:'Prof non assigné'} &nbsp;·&nbsp; 🎾 ${nbEleves} élève${nbEleves>1?'s':''}</div>
+          <div class="cc-footer">
+            <div class="cc-gauge-mini"><div class="cc-gauge-mini-fill" style="width:${pct}%"></div></div>
+            <span class="cc-seances-count">${fait}/${objectif} séances</span>
+          </div>
+          <div style="text-align:center; margin-top:10px; font-size:12px; color:var(--court); font-weight:600;">Appuyer pour faire l'appel →</div>
+        </div>`;
+      });
+      html += `</div>`;
+    }
   }
 
   app.innerHTML = html;
@@ -738,9 +746,51 @@ function profLogin(){
 }
 function profLogout(){ UI.profSession=null; renderApp(); }
 function selectCreneauProf(id){
-  UI.profSelectedCreneau = (UI.profSelectedCreneau===id) ? null : id;
+  UI.profSelectedCreneau = id;
   renderApp();
+  if(id) window.scrollTo({top:0, behavior:'smooth'});
 }
+
+// Tooltip téléphone sur appui long (500ms)
+let _longPressTimer = null;
+let _tooltip = null;
+function startLongPress(eleveId){
+  _longPressTimer = setTimeout(()=>{
+    const el = eleveById(eleveId);
+    if(!el) return;
+    const tel = el.telephone || '';
+    const telPropre = tel.replace(/\s/g,'');
+    if(_tooltip) _tooltip.remove();
+    _tooltip = document.createElement('div');
+    _tooltip.innerHTML = `
+      <div style="font-weight:700; font-size:15px; margin-bottom:4px;">${el.prenom} ${el.nom}</div>
+      <div style="font-size:13px; opacity:.85; margin-bottom:12px;">${tel || 'Téléphone non renseigné'}</div>
+      ${telPropre ? `
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <a href="tel:${telPropre}" style="display:flex; align-items:center; gap:6px; background:#3F8F5F; color:#fff; padding:9px 16px; border-radius:8px; text-decoration:none; font-weight:600; font-size:13px;">
+          📞 Appeler
+        </a>
+        <a href="sms:${telPropre}" style="display:flex; align-items:center; gap:6px; background:#2a6496; color:#fff; padding:9px 16px; border-radius:8px; text-decoration:none; font-weight:600; font-size:13px;">
+          💬 SMS
+        </a>
+      </div>` : ''}
+      <div onclick="if(_tooltip){_tooltip.remove();_tooltip=null;}" style="margin-top:10px; font-size:11px; opacity:.5; cursor:pointer;">Appuyer pour fermer</div>
+    `;
+    Object.assign(_tooltip.style, {
+      position:'fixed', bottom:'30px', left:'50%', transform:'translateX(-50%)',
+      background:'var(--court-dark)', color:'var(--chalk)', padding:'12px 20px',
+      borderRadius:'12px', fontSize:'15px', zIndex:'9999', textAlign:'center',
+      boxShadow:'0 4px 20px rgba(0,0,0,.3)', lineHeight:'1.6',
+      animation:'fadeIn .15s ease'
+    });
+    const style = document.createElement('style');
+    style.textContent = '@keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+    document.head.appendChild(style);
+    document.body.appendChild(_tooltip);
+    setTimeout(()=>{ if(_tooltip){ _tooltip.remove(); _tooltip=null; }}, 3000);
+  }, 500);
+}
+function cancelLongPress(){ clearTimeout(_longPressTimer); }
 
 function renderFeuilleAppel(creneauId){
   const c = creneauById(creneauId);
@@ -774,7 +824,10 @@ function renderFeuilleAppel(creneauId){
   html += `<th>+</th><th>% présence</th></tr></thead><tbody>`;
 
   eleves.forEach(el=>{
-    html += `<tr><td>${el.nom} ${el.prenom}</td>`;
+    html += `<tr><td style="cursor:pointer; user-select:none;" 
+      onmousedown="startLongPress('${el.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
+      ontouchstart="startLongPress('${el.id}')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()"
+      title="Maintenir appuyé pour voir le téléphone">${el.nom} ${el.prenom}<br><span style="font-size:10px;color:#bbb;">appui long → 📞</span></td>`;
     seances.forEach(s=>{
       if(s.personne){ html += `<td class="personne-col">—</td>`; return; }
       const p = DB.Presences.find(pr=>pr.seance_id===s.id && pr.eleve_id===el.id);
