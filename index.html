@@ -754,13 +754,20 @@ function selectCreneauProf(id){
 let _smsTimer = null;
 function startSmsGroupe(creneauId){
   const bar = document.getElementById('smsBtnProgress');
-  if(bar){ bar.style.width='0%'; setTimeout(()=>bar.style.width='100%',20); }
+  if(bar){
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    requestAnimationFrame(()=> requestAnimationFrame(()=>{
+      bar.style.transition = 'width 2s linear';
+      bar.style.width = '100%';
+    }));
+  }
   _smsTimer = setTimeout(()=>{ ouvrirModalSmsGroupe(creneauId); }, 2000);
 }
 function cancelSmsGroupe(){
   clearTimeout(_smsTimer);
   const bar = document.getElementById('smsBtnProgress');
-  if(bar){ bar.style.transition='none'; bar.style.width='0%'; setTimeout(()=>bar.style.transition='width 2s linear',50); }
+  if(bar){ bar.style.transition='none'; bar.style.width='0%'; }
 }
 function ouvrirModalSmsGroupe(creneauId){
   const eleves = elevesDuCreneau(creneauId).filter(e=>e.telephone);
@@ -798,9 +805,18 @@ function ouvrirModalSmsGroupe(creneauId){
 }
 function setSmsMsg(msg){ const t = document.getElementById('smsMsgText'); if(t) t.value=msg; }
 function envoyerSmsGroupe(numeros){
-  const msg = encodeURIComponent(document.getElementById('smsMsgText').value || '');
-  const nums = numeros.join(',');
-  window.location.href = `sms:${nums}${msg?'?body='+msg:''}`;
+  const msg = encodeURIComponent((document.getElementById('smsMsgText').value || '').trim());
+  // iOS : séparateur virgule, Android : point-virgule — on essaie les deux via un lien <a>
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const sep = isIOS ? ',' : ';';
+  const nums = numeros.join(sep);
+  const url = `sms:${nums}${msg?'?body='+msg:''}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>a.remove(), 500);
 }
 function copierNumeros(numeros){
   navigator.clipboard.writeText(numeros.join(', ')).then(()=>alert('Numéros copiés dans le presse-papier !')).catch(()=>prompt('Copiez ces numéros :', numeros.join(', ')));
@@ -858,10 +874,15 @@ function renderFeuilleAppel(creneauId){
   // Bouton SMS groupe (appui long 2s)
   const smsBtn = `
     <div style="margin-top:10px;">
-      <button onclick="ouvrirModalSmsGroupe('${creneauId}')"
-        style="background:#2a6496; color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:7px;">
+      <button id="smsBtnGroupe"
+        style="background:#2a6496; color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:7px; position:relative; overflow:hidden; user-select:none; -webkit-user-select:none; touch-action:none; -webkit-touch-callout:none;"
+        oncontextmenu="return false;"
+        onmousedown="startSmsGroupe('${creneauId}')" onmouseup="cancelSmsGroupe()" onmouseleave="cancelSmsGroupe()"
+        ontouchstart="event.preventDefault(); startSmsGroupe('${creneauId}')" ontouchend="cancelSmsGroupe()" ontouchcancel="cancelSmsGroupe()">
         <span style="font-size:16px;">💬</span>
-        SMS au groupe
+        SMS groupe
+        <span style="font-size:10px; opacity:.65; margin-left:2px;">(2s)</span>
+        <span id="smsBtnProgress" style="position:absolute; left:0; top:0; bottom:0; width:0%; background:rgba(255,255,255,.2); transition:none; pointer-events:none; border-radius:8px;"></span>
       </button>
     </div>`;
 
@@ -892,10 +913,11 @@ function renderFeuilleAppel(creneauId){
   html += `<th>+</th><th>% présence</th></tr></thead><tbody>`;
 
   eleves.forEach(el=>{
-    html += `<tr><td style="cursor:pointer; user-select:none;" 
+    html += `<tr><td style="cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;"
+      oncontextmenu="return false;"
       onmousedown="startLongPress('${el.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
-      ontouchstart="startLongPress('${el.id}')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()"
-      title="Maintenir appuyé pour voir le téléphone">${el.nom} ${el.prenom}<br><span style="font-size:10px;color:#bbb;">appui long → 📞</span></td>`;
+      ontouchstart="event.preventDefault(); startLongPress('${el.id}')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()"
+      >${el.nom} ${el.prenom}<br><span style="font-size:10px;color:#bbb;">appui long → 📞</span></td>`;
     seances.forEach(s=>{
       if(s.personne){ html += `<td class="personne-col">—</td>`; return; }
       const p = DB.Presences.find(pr=>pr.seance_id===s.id && pr.eleve_id===el.id);
