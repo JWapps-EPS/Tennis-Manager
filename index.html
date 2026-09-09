@@ -751,6 +751,61 @@ function selectCreneauProf(id){
   if(id) window.scrollTo({top:0, behavior:'smooth'});
 }
 
+let _smsTimer = null;
+function startSmsGroupe(creneauId){
+  const bar = document.getElementById('smsBtnProgress');
+  if(bar){ bar.style.width='0%'; setTimeout(()=>bar.style.width='100%',20); }
+  _smsTimer = setTimeout(()=>{ ouvrirModalSmsGroupe(creneauId); }, 2000);
+}
+function cancelSmsGroupe(){
+  clearTimeout(_smsTimer);
+  const bar = document.getElementById('smsBtnProgress');
+  if(bar){ bar.style.transition='none'; bar.style.width='0%'; setTimeout(()=>bar.style.transition='width 2s linear',50); }
+}
+function ouvrirModalSmsGroupe(creneauId){
+  const eleves = elevesDuCreneau(creneauId).filter(e=>e.telephone);
+  const numeros = eleves.map(e=>e.telephone.replace(/\s/g,'')).filter(Boolean);
+  const sansNum = elevesDuCreneau(creneauId).filter(e=>!e.telephone);
+  const c = creneauById(creneauId);
+
+  if(document.getElementById('smsModal')) document.getElementById('smsModal').remove();
+  const modal = document.createElement('div');
+  modal.id = 'smsModal';
+  modal.innerHTML = `
+    <div onclick="document.getElementById('smsModal').remove()" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;"></div>
+    <div style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;padding:22px;z-index:9999;max-height:85vh;overflow-y:auto;box-shadow:0 -4px 30px rgba(0,0,0,.2);">
+      <h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:18px;margin:0 0 4px;color:var(--court-dark);">💬 SMS au groupe</h3>
+      <p style="font-size:12px;color:#9b9684;margin:0 0 16px;">${c.jour} ${c.heure_debut} · ${eleves.length} numéro(s) disponible(s)${sansNum.length?` · ${sansNum.length} sans numéro`:''}</p>
+
+      <div class="field" style="margin-bottom:16px;">
+        <label>Message</label>
+        <textarea id="smsMsgText" rows="3" style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;resize:vertical;"></textarea>
+      </div>
+
+      ${numeros.length ? `
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <button class="btn btn-ok" style="flex:1;" onclick="envoyerSmsGroupe(${JSON.stringify(numeros)})">
+          📤 Envoyer le SMS (${numeros.length} destinataire${numeros.length>1?'s':''})
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="copierNumeros(${JSON.stringify(numeros)})">📋 Copier tous les numéros</button>
+      ` : `<p style="color:var(--danger);font-size:13px;">⚠️ Aucun numéro de téléphone renseigné dans ce groupe.</p>`}
+
+      ${sansNum.length ? `<p style="font-size:11px;color:#9b9684;margin-top:10px;">Sans numéro : ${sansNum.map(e=>e.prenom+' '+e.nom).join(', ')}</p>` : ''}
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;" onclick="document.getElementById('smsModal').remove()">Fermer</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function setSmsMsg(msg){ const t = document.getElementById('smsMsgText'); if(t) t.value=msg; }
+function envoyerSmsGroupe(numeros){
+  const msg = encodeURIComponent(document.getElementById('smsMsgText').value || '');
+  const nums = numeros.join(',');
+  window.location.href = `sms:${nums}${msg?'?body='+msg:''}`;
+}
+function copierNumeros(numeros){
+  navigator.clipboard.writeText(numeros.join(', ')).then(()=>alert('Numéros copiés dans le presse-papier !')).catch(()=>prompt('Copiez ces numéros :', numeros.join(', ')));
+}
+
 // Tooltip téléphone sur appui long (500ms)
 let _longPressTimer = null;
 let _tooltip = null;
@@ -800,8 +855,25 @@ function renderFeuilleAppel(creneauId){
   const fait = seances.length;
   const pct = Math.min(100, Math.round(100*fait/objectif));
 
+  // Bouton SMS groupe (appui long 2s)
+  const smsBtn = `
+    <div style="margin-top:10px;">
+      <button id="smsBtnGroupe"
+        style="background:#2a6496; color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:7px; position:relative; overflow:hidden; user-select:none;"
+        onmousedown="startSmsGroupe('${creneauId}')" onmouseup="cancelSmsGroupe()" onmouseleave="cancelSmsGroupe()"
+        ontouchstart="startSmsGroupe('${creneauId}')" ontouchend="cancelSmsGroupe()" ontouchcancel="cancelSmsGroupe()">
+        <span style="font-size:16px;">💬</span>
+        SMS au groupe
+        <span style="font-size:11px; opacity:.7; margin-left:4px;">(maintenir 2s)</span>
+        <span id="smsBtnProgress" style="position:absolute; left:0; top:0; bottom:0; width:0%; background:rgba(255,255,255,.15); transition:width 2s linear; pointer-events:none;"></span>
+      </button>
+    </div>`;
+
   let html = `<div class="card">
-    <h2>Feuille d'appel — ${c.jour} ${c.heure_debut}-${heureFin(c.heure_debut,c.duree)}</h2>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+      <h2 style="margin:0; padding:0; border:none;">Feuille d'appel — ${c.jour} ${c.heure_debut}-${heureFin(c.heure_debut,c.duree)}</h2>
+      ${smsBtn}
+    </div>
     <div class="gauge-wrap">
       <div class="gauge"><div class="gauge-fill" style="width:${pct}%"></div></div>
       <div class="gauge-label">${fait} / ${objectif} séances réalisées${fait>=objectif?' — objectif atteint 🎾':''}</div>
