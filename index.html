@@ -843,7 +843,7 @@ function startLongPress(eleveId){
     document.head.appendChild(style);
     document.body.appendChild(_tooltip);
     setTimeout(()=>{ if(_tooltip){ _tooltip.remove(); _tooltip=null; }}, 3000);
-  }, 500);
+  }, 2000);
 }
 function cancelLongPress(){ clearTimeout(_longPressTimer); }
 
@@ -858,14 +858,10 @@ function renderFeuilleAppel(creneauId){
   // Bouton SMS groupe (appui long 2s)
   const smsBtn = `
     <div style="margin-top:10px;">
-      <button id="smsBtnGroupe"
-        style="background:#2a6496; color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:7px; position:relative; overflow:hidden; user-select:none;"
-        onmousedown="startSmsGroupe('${creneauId}')" onmouseup="cancelSmsGroupe()" onmouseleave="cancelSmsGroupe()"
-        ontouchstart="startSmsGroupe('${creneauId}')" ontouchend="cancelSmsGroupe()" ontouchcancel="cancelSmsGroupe()">
+      <button onclick="ouvrirModalSmsGroupe('${creneauId}')"
+        style="background:#2a6496; color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:7px;">
         <span style="font-size:16px;">💬</span>
         SMS au groupe
-        <span style="font-size:11px; opacity:.7; margin-left:4px;">(maintenir 2s)</span>
-        <span id="smsBtnProgress" style="position:absolute; left:0; top:0; bottom:0; width:0%; background:rgba(255,255,255,.15); transition:width 2s linear; pointer-events:none;"></span>
       </button>
     </div>`;
 
