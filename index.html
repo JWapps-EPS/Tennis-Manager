@@ -281,7 +281,7 @@ const HEADERS = {
 let DB = { Config:[], Profs:[], Planning:[], Eleves:[], Affectations:[], Seances:[], Presences:[] };
 let UI = {
   mainTab: 'planning',
-  planningDay: JOURS[0],
+  planningDay: 'tous',
   planningSelectedSlot: null,
   profSession: null,        // {id, nom}
   profSelectedCreneau: null,
@@ -487,13 +487,6 @@ function setMainTab(t){ UI.mainTab=t; renderApp(); }
 /* ---------- PLANNING PUBLIC ---------- */
 function renderPlanning(){
   const app = document.getElementById('app');
-
-  if(!UI.planningDayInit){
-    const jsDay = new Date().getDay();
-    const idx = (jsDay>=1 && jsDay<=6) ? jsDay-1 : 0;
-    UI.planningDay = JOURS[idx];
-    UI.planningDayInit = true;
-  }
 
   // Boutons de navigation
   let html = `<div class="day-pills">
@@ -885,7 +878,7 @@ function renderFeuilleAppel(creneauId){
         style="background:#2a6496; color:#fff; border:none; border-radius:8px; padding:10px 16px; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:7px; position:relative; overflow:hidden; user-select:none; -webkit-user-select:none; touch-action:none; -webkit-touch-callout:none;"
         oncontextmenu="return false;"
         onmousedown="startSmsGroupe('${creneauId}')" onmouseup="cancelSmsGroupe()" onmouseleave="cancelSmsGroupe()"
-        ontouchstart="event.preventDefault(); startSmsGroupe('${creneauId}')" ontouchend="cancelSmsGroupe()" ontouchcancel="cancelSmsGroupe()">
+        ontouchstart="startSmsGroupe('${creneauId}')" ontouchend="cancelSmsGroupe()" ontouchcancel="cancelSmsGroupe()" ontouchmove="cancelSmsGroupe()">
         <span style="font-size:16px;">💬</span>
         SMS groupe
         <span style="font-size:10px; opacity:.65; margin-left:2px;">(2s)</span>
@@ -923,7 +916,7 @@ function renderFeuilleAppel(creneauId){
     html += `<tr><td style="cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none;"
       oncontextmenu="return false;"
       onmousedown="startLongPress('${el.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
-      ontouchstart="event.preventDefault(); startLongPress('${el.id}')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()"
+      ontouchstart="startLongPress('${el.id}')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()" ontouchmove="cancelLongPress()"
       >${el.nom} ${el.prenom}<br>
       <span style="font-size:10px; color:#9b9684;">${el.annee_naissance||''}${el.annee_naissance && el.niveau?' · ':''}${el.niveau||''}</span><br>
       <span style="font-size:10px;color:#ccc;">appui long → 📞</span></td>`;
