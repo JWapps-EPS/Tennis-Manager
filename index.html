@@ -909,7 +909,7 @@ function renderFeuilleAppel(creneauId){
     return html;
   }
 
-  html += `<div class="scroll-x"><table><thead><tr><th style="min-width:140px;">Élève</th><th style="min-width:50px;">Né(e)</th>`;
+  html += `<div class="scroll-x"><table><thead><tr><th style="min-width:160px;">Élève</th>`;
   seances.forEach(s=>{
     html += `<th class="${s.personne?'personne-col':''}">
       <span class="date-head" onclick="editSeanceDate('${s.id}')">${formatDate(s.date)}</span>
@@ -924,11 +924,9 @@ function renderFeuilleAppel(creneauId){
       oncontextmenu="return false;"
       onmousedown="startLongPress('${el.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
       ontouchstart="event.preventDefault(); startLongPress('${el.id}')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()"
-      >${el.nom} ${el.prenom}<br><span style="font-size:10px;color:#bbb;">appui long → 📞</span></td>
-    <td style="font-size:12px; color:#6b6657; text-align:center;">
-      <span class="mono">${el.annee_naissance||'—'}</span>
-      ${el.niveau?`<br><span style="font-size:11px; background:#f1eee2; border-radius:4px; padding:1px 5px;">${el.niveau}</span>`:''}
-    </td>`;
+      >${el.nom} ${el.prenom}<br>
+      <span style="font-size:10px; color:#9b9684;">${el.annee_naissance||''}${el.annee_naissance && el.niveau?' · ':''}${el.niveau||''}</span><br>
+      <span style="font-size:10px;color:#ccc;">appui long → 📞</span></td>`;
     seances.forEach(s=>{
       if(s.personne){ html += `<td class="personne-col">—</td>`; return; }
       const p = DB.Presences.find(pr=>pr.seance_id===s.id && pr.eleve_id===el.id);
