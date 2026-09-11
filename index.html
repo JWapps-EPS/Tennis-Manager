@@ -902,40 +902,49 @@ function renderFeuilleAppel(creneauId){
     return html;
   }
 
-  html += `<div class="scroll-x"><table><thead><tr><th style="min-width:160px;">Élève</th>`;
+  html += `<div class="scroll-x"><table><thead><tr>
+    <th style="min-width:160px; position:sticky; left:0; background:#f1eee2; z-index:2;">Élève</th>`;
   seances.forEach(s=>{
-    html += `<th class="${s.personne?'personne-col':''}">
-      <span class="date-head" onclick="editSeanceDate('${s.id}')">${formatDate(s.date)}</span>
-      ${s.personne?'<br><span style="font-size:10px;">Personne</span>':''}
-      <br><span onclick="supprimerSeance('${s.id}')" title="Supprimer cette séance" style="cursor:pointer; font-size:13px; color:#ccc; display:inline-block; margin-top:2px; line-height:1;" onmouseover="this.style.color='#C0392B'" onmouseout="this.style.color='#ccc'">✕</span>
+    html += `<th class="${s.personne?'personne-col':''}" style="padding:4px 2px; text-align:center; min-width:30px; max-width:34px;">
+      <span class="date-head" onclick="editSeanceDate('${s.id}')" style="font-size:10px;">${formatDate(s.date)}</span>
+      ${s.personne?'<br><span style="font-size:8px; color:#aaa;">⊘</span>':''}
+      <br><span onclick="supprimerSeance('${s.id}')" style="cursor:pointer; font-size:10px; color:#ddd; line-height:1;" onmouseover="this.style.color='#C0392B'" onmouseout="this.style.color='#ddd'">✕</span>
     </th>`;
   });
-  html += `<th>+</th><th>% présence</th></tr></thead><tbody>`;
+  html += `</tr></thead><tbody>`;
 
   eleves.forEach(el=>{
-    html += `<tr><td style="cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;"
-      oncontextmenu="return false;"
-      onmousedown="startLongPress('${el.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
-      ontouchstart="startLongPress('${el.id}')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()" ontouchmove="cancelLongPress()"
-      >${el.nom} ${el.prenom}<br>
-      <span style="font-size:10px; color:#9b9684;">${el.annee_naissance||''}${el.annee_naissance && el.niveau?' · ':''}${el.niveau||''}</span><br>
-      <span style="font-size:10px;color:#ccc;">appui long → 📞</span></td>`;
+    const pct2 = presencePct(el.id, creneauId);
+    html += `<tr>
+      <td style="cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; position:sticky; left:0; background:#fff; z-index:1;"
+        oncontextmenu="return false;"
+        onmousedown="startLongPress('${el.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
+        ontouchstart="startLongPress('${el.id}')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()" ontouchmove="cancelLongPress()">
+        <div style="font-weight:600;">${el.nom} ${el.prenom}</div>
+        <div style="font-size:10px; color:#9b9684;">${el.annee_naissance||''}${el.annee_naissance && el.niveau?' · ':''}${el.niveau||''}</div>
+        <div style="display:flex; align-items:center; gap:6px; margin-top:3px;">
+          <span style="font-size:11px; font-family:'JetBrains Mono',monospace; font-weight:700; color:${pct2!==null&&pct2<50?'var(--danger)':pct2!==null&&pct2<80?'var(--warn)':'var(--ok)'};">${pct2===null?'—':pct2+'%'}</span>
+          <span style="font-size:10px; color:#ccc;">📞 2s</span>
+        </div>
+      </td>`;
     seances.forEach(s=>{
-      if(s.personne){ html += `<td class="personne-col">—</td>`; return; }
+      if(s.personne){ html += `<td class="personne-col" style="text-align:center; font-size:11px;">—</td>`; return; }
       const p = DB.Presences.find(pr=>pr.seance_id===s.id && pr.eleve_id===el.id);
       const present = p ? p.present : false;
-      html += `<td><div class="seance-cell ${present?'present':'absent'}" onclick="togglePresence('${s.id}','${el.id}')">${present?'✓':'✗'}</div></td>`;
+      html += `<td style="padding:4px 2px; text-align:center;"><div class="seance-cell ${present?'present':'absent'}" style="margin:0 auto;" onclick="togglePresence('${s.id}','${el.id}')">${present?'✓':'✗'}</div></td>`;
     });
-    if(seances.length>0) html += `<td></td>`;
-    const pct2 = presencePct(el.id, creneauId);
-    html += `<td class="mono">${pct2===null?'—':pct2+'%'}</td></tr>`;
+    html += `</tr>`;
   });
   html += `</tbody></table></div>`;
-  html += `<div style="margin-top:14px;"><button class="add-seance-btn" onclick="ajouterSeance('${creneauId}')" title="Ajouter une séance">+</button> <span class="muted">Ajouter la séance du jour</span></div>`;
+  html += `<div style="margin-top:14px; display:flex; align-items:center; gap:10px;">
+    <button class="add-seance-btn" onclick="ajouterSeance('${creneauId}')" title="Ajouter une séance">+</button>
+    <span class="muted" style="font-size:13px;">Ajouter la séance du jour</span>
+  </div>`;
   html += `</div>`;
   return html;
 }
 function formatDate(iso){
+  if(!iso || !iso.includes('-')) return iso||'';
   const [y,m,d] = iso.split('-');
   return `${d}/${m}`;
 }
