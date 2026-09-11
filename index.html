@@ -904,7 +904,7 @@ function renderFeuilleAppel(creneauId){
 
   html += `
   <!-- Tableau unique avec scroll horizontal -->
-  <div style="overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:8px; border:1px solid #e3dfd2;">
+  <div class="appel-scroll" style="overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:8px; border:1px solid #e3dfd2;">
     ${seances.length>0 ? `<div style="text-align:right; padding:4px 8px; font-size:10px; color:#bbb; background:#fafaf8;">← glisser pour voir les séances →</div>` : ''}
     <table style="width:100%; border-collapse:collapse;">
       <thead><tr>
@@ -1000,10 +1000,22 @@ async function supprimerSeance(seanceId){
   await persist('Presences');
 }
 async function togglePresence(seanceId, eleveId){
+  // Sauvegarder la position de scroll du tableau avant re-rendu
+  const tableScroll = document.querySelector('.appel-scroll');
+  const savedScroll = tableScroll ? tableScroll.scrollLeft : 0;
+
   let p = DB.Presences.find(pr=>pr.seance_id===seanceId && pr.eleve_id===eleveId);
   if(!p){ p = {id:uid(), seance_id:seanceId, eleve_id:eleveId, present:true}; DB.Presences.push(p); }
   else p.present = !p.present;
+
   renderApp();
+
+  // Restaurer la position de scroll après re-rendu
+  requestAnimationFrame(()=>{
+    const el = document.querySelector('.appel-scroll');
+    if(el) el.scrollLeft = savedScroll;
+  });
+
   await persist('Presences');
 }
 
