@@ -137,12 +137,6 @@ td{padding:7px 8px; border-bottom:1px solid #ede9da; vertical-align:middle;}
 .cc-gauge-mini-fill{ height:100%; background:linear-gradient(90deg,var(--clay),var(--ball)); border-radius:4px;}
 .cc-seances-count{ font-family:'JetBrains Mono',monospace; font-size:12px; color:#6b6657; white-space:nowrap;}
 .gauge-wrap{margin-bottom:16px;}
-.appel-mobile{ display:none; }
-.appel-desktop{ display:block; }
-@media(max-width:640px){
-  .appel-mobile{ display:block; }
-  .appel-desktop{ display:none; }
-}
 .gauge{height:14px; background:#ede9da; border-radius:8px; overflow:hidden;}
 .gauge-fill{height:100%; background:linear-gradient(90deg,var(--clay),var(--ball)); transition:width .3s;}
 .gauge-label{font-family:'JetBrains Mono',monospace; font-size:13px; margin-top:6px;}
@@ -907,101 +901,53 @@ function renderFeuilleAppel(creneauId){
     return html;
   }
 
-  // Panneau d'aide
-  html += `<div style="background:#f7f4ec; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:#6b6657; line-height:1.8;">
-    <div style="font-family:'Oswald',sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--court-dark); margin-bottom:6px;">Comment ça marche</div>
-    <div>➕ <b>Ajouter une séance</b> → bouton <span style="background:var(--court); color:#fff; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">+</span> en bas</div>
-    <div>✓ / ✗ <b>Faire l'appel</b> → appuyer sur la case de chaque élève pour basculer présent/absent</div>
-    <div>✏️ <b>Modifier la date</b> d'une séance → appuyer sur la date en haut de la colonne</div>
-    <div>🗑️ <b>Supprimer une séance</b> → appuyer sur le <span style="color:#C0392B; font-weight:700;">✕</span> rouge sous la date</div>
-    <div>📞 <b>Voir le téléphone</b> d'un élève → maintenir appuyé 2s sur son nom</div>
-  </div>`;
 
   html += `
-  <!-- VUE MOBILE : cartes par élève -->
-  <div class="appel-mobile">
-    <div style="margin-bottom:12px; font-size:12px; color:#6b6657;">
-      Appuyez sur 🟢/🔴 pour basculer présent/absent · Appuyez sur la date pour la modifier · <span style="color:#C0392B;">✕</span> pour supprimer
-    </div>`;
+  <!-- Tableau unique avec scroll horizontal -->
+  <div style="overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:8px; border:1px solid #e3dfd2;">
+    ${seances.length>0 ? `<div style="text-align:right; padding:4px 8px; font-size:10px; color:#bbb; background:#fafaf8;">← glisser pour voir les séances →</div>` : ''}
+    <table style="width:100%; border-collapse:collapse;">
+      <thead><tr>
+        <th style="min-width:150px; position:sticky; left:0; background:#f1eee2; z-index:2; padding:8px; text-align:left; font-size:12px;">Élève</th>`;
 
-  seances.forEach((s,si)=>{
-    const dateLabel = s.personne
-      ? `<span style="background:#f1eee2; color:#aaa; border-radius:4px; padding:1px 5px; font-size:10px;">⊘ ${formatDate(s.date)}</span>`
-      : `<span style="background:var(--court-dark); color:#fff; border-radius:4px; padding:1px 6px; font-size:10px; cursor:pointer;" onclick="editSeanceDate('${s.id}')">${formatDate(s.date)}</span>`;
-
-    html += `<div style="background:#fff; border:1px solid #e3dfd2; border-radius:10px; margin-bottom:10px; overflow:hidden;">
-      <div style="background:#f7f4ec; padding:8px 12px; display:flex; justify-content:space-between; align-items:center;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13px; color:var(--court-dark);">Séance ${si+1}</span>
-          ${dateLabel}
-        </div>
-        <span onclick="supprimerSeance('${s.id}')" style="cursor:pointer; font-size:16px; color:#ddd; padding:2px 6px;" onmouseover="this.style.color='#C0392B'" onmouseout="this.style.color='#ddd'">✕</span>
-      </div>`;
-
-    if(s.personne){
-      html += `<div style="padding:10px 12px; font-size:12px; color:#aaa; font-style:italic;">Séance comptabilisée — personne présent</div>`;
-    } else {
-      eleves.forEach(el=>{
-        const p = DB.Presences.find(pr=>pr.seance_id===s.id && pr.eleve_id===el.id);
-        const present = p ? p.present : false;
-        html += `<div style="display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-top:1px solid #f5f2e8;">
-          <div>
-            <div style="font-size:13px; font-weight:600;">${el.prenom} ${el.nom}</div>
-            <div style="font-size:10px; color:#9b9684;">${el.annee_naissance||''}${el.annee_naissance&&el.niveau?' · ':''}${el.niveau||''}</div>
-          </div>
-          <button onclick="togglePresence('${s.id}','${el.id}')"
-            style="width:44px; height:44px; border-radius:50%; border:none; font-size:20px; cursor:pointer; background:${present?'var(--ok)':'#f1eee2'}; color:${present?'#fff':'#bbb'}; flex-shrink:0; transition:.15s;">
-            ${present?'✓':'✗'}
-          </button>
-        </div>`;
-      });
-    }
-    html += `</div>`;
+  seances.forEach(s=>{
+    html += `<th class="${s.personne?'personne-col':''}" style="padding:4px 2px; text-align:center; min-width:36px; background:${s.personne?'#f6f4ed':'#f1eee2'};">
+      <span class="date-head" onclick="editSeanceDate('${s.id}')" style="font-size:10px; display:block;">${formatDate(s.date)}</span>
+      ${s.personne?'<span style="font-size:8px; color:#aaa; display:block;">⊘</span>':''}
+      <span onclick="supprimerSeance('${s.id}')" style="cursor:pointer; font-size:11px; color:#ddd;" onmouseover="this.style.color='#C0392B'" onmouseout="this.style.color='#ddd'">✕</span>
+    </th>`;
   });
 
   if(seances.length===0){
-    html += `<div style="text-align:center; padding:30px; color:#bbb; font-size:13px;">
-      Aucune séance enregistrée.<br>Utilisez le bouton ci-dessous pour créer la première.
-    </div>`;
+    html += `<th style="padding:8px; font-size:12px; color:#bbb; background:#f1eee2; white-space:nowrap;">← Aucune séance</th>`;
   }
 
-  html += `</div>
-
-  <!-- VUE DESKTOP : tableau classique -->
-  <div class="appel-desktop">
-    <div class="scroll-x"><table><thead><tr>
-      <th style="min-width:160px; position:sticky; left:0; background:#f1eee2; z-index:2;">Élève</th>`;
-
-  seances.forEach(s=>{
-    html += `<th class="${s.personne?'personne-col':''}" style="padding:4px 2px; text-align:center; min-width:30px; max-width:34px;">
-      <span class="date-head" onclick="editSeanceDate('${s.id}')" style="font-size:10px;">${formatDate(s.date)}</span>
-      ${s.personne?'<br><span style="font-size:8px; color:#aaa;">⊘</span>':''}
-      <br><span onclick="supprimerSeance('${s.id}')" style="cursor:pointer; font-size:10px; color:#ddd;" onmouseover="this.style.color='#C0392B'" onmouseout="this.style.color='#ddd'">✕</span>
-    </th>`;
-  });
   html += `</tr></thead><tbody>`;
 
   eleves.forEach(el=>{
     const pct2 = presencePct(el.id, creneauId);
     html += `<tr>
-      <td style="cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; position:sticky; left:0; background:#fff; z-index:1;"
+      <td style="position:sticky; left:0; background:#fff; z-index:1; padding:8px; cursor:pointer; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; border-bottom:1px solid #f5f2e8;"
         oncontextmenu="return false;"
         onmousedown="startLongPress('${el.id}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
         ontouchstart="startLongPress('${el.id}')" ontouchend="cancelLongPress()" ontouchcancel="cancelLongPress()" ontouchmove="cancelLongPress()">
-        <div style="font-weight:600;">${el.nom} ${el.prenom}</div>
+        <div style="font-weight:600; font-size:13px;">${el.nom} ${el.prenom}</div>
         <div style="font-size:10px; color:#9b9684;">${el.annee_naissance||''}${el.annee_naissance&&el.niveau?' · ':''}${el.niveau||''}</div>
-        <div style="font-size:11px; font-family:'JetBrains Mono',monospace; font-weight:700; color:${pct2!==null&&pct2<50?'var(--danger)':pct2!==null&&pct2<80?'var(--warn)':'var(--ok)'};">${pct2===null?'—':pct2+'%'}</div>
+        <div style="font-size:11px; font-family:'JetBrains Mono',monospace; font-weight:700; margin-top:2px; color:${pct2!==null&&pct2<50?'var(--danger)':pct2!==null&&pct2<80?'var(--warn)':'var(--ok)'};">${pct2===null?'—':pct2+'%'}</div>
       </td>`;
     seances.forEach(s=>{
-      if(s.personne){ html += `<td class="personne-col" style="text-align:center; font-size:11px;">—</td>`; return; }
+      if(s.personne){ html += `<td style="text-align:center; background:#f9f7f2; border-bottom:1px solid #f5f2e8; color:#ccc; font-size:12px;">—</td>`; return; }
       const p = DB.Presences.find(pr=>pr.seance_id===s.id && pr.eleve_id===el.id);
       const present = p ? p.present : false;
-      html += `<td style="padding:4px 2px; text-align:center;"><div class="seance-cell ${present?'present':'absent'}" style="margin:0 auto;" onclick="togglePresence('${s.id}','${el.id}')">${present?'✓':'✗'}</div></td>`;
+      html += `<td style="padding:6px 2px; text-align:center; border-bottom:1px solid #f5f2e8;">
+        <div class="seance-cell ${present?'present':'absent'}" style="margin:0 auto; width:36px; height:36px; font-size:16px;" onclick="togglePresence('${s.id}','${el.id}')">${present?'✓':'✗'}</div>
+      </td>`;
     });
+    if(seances.length===0) html += `<td style="border-bottom:1px solid #f5f2e8;"></td>`;
     html += `</tr>`;
   });
-  html += `</tbody></table></div>
-  </div>`;
+  html += `</tbody></table></div>`;
+
   html += `<div style="margin-top:16px; display:flex; align-items:center; gap:12px; background:#e8f5ec; border-radius:8px; padding:10px 14px;">
     <button class="add-seance-btn" onclick="ajouterSeance('${creneauId}')" title="Ajouter une séance" style="flex-shrink:0;">+</button>
     <div>
