@@ -200,7 +200,7 @@ footer{text-align:center; padding:18px; font-size:11px; color:#9b9684; font-fami
 
   /* Tableaux : scroll horizontal */
   .scroll-x { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  table { min-width:500px; }
+  table { min-width:0; width:100%; }
 
   /* Login box */
   .login-box { margin:30px auto; padding:0 10px; }
@@ -898,9 +898,18 @@ function renderFeuilleAppel(creneauId){
 
   if(eleves.length===0){
     html += `<p class="muted">Aucun élève affecté à ce créneau (à faire dans Admin → Affectations).</p></div>`;
-    document.getElementById('app').innerHTML = document.getElementById('app').innerHTML; // noop guard
     return html;
   }
+
+  // Panneau d'aide
+  html += `<div style="background:#f7f4ec; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:#6b6657; line-height:1.8;">
+    <div style="font-family:'Oswald',sans-serif; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--court-dark); margin-bottom:6px;">Comment ça marche</div>
+    <div>➕ <b>Ajouter une séance</b> → bouton <span style="background:var(--court); color:#fff; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">+</span> en bas</div>
+    <div>✓ / ✗ <b>Faire l'appel</b> → appuyer sur la case de chaque élève pour basculer présent/absent</div>
+    <div>✏️ <b>Modifier la date</b> d'une séance → appuyer sur la date en haut de la colonne</div>
+    <div>🗑️ <b>Supprimer une séance</b> → appuyer sur le <span style="color:#C0392B; font-weight:700;">✕</span> rouge sous la date</div>
+    <div>📞 <b>Voir le téléphone</b> d'un élève → maintenir appuyé 2s sur son nom</div>
+  </div>`;
 
   html += `<div class="scroll-x"><table><thead><tr>
     <th style="min-width:160px; position:sticky; left:0; background:#f1eee2; z-index:2;">Élève</th>`;
@@ -936,9 +945,12 @@ function renderFeuilleAppel(creneauId){
     html += `</tr>`;
   });
   html += `</tbody></table></div>`;
-  html += `<div style="margin-top:14px; display:flex; align-items:center; gap:10px;">
-    <button class="add-seance-btn" onclick="ajouterSeance('${creneauId}')" title="Ajouter une séance">+</button>
-    <span class="muted" style="font-size:13px;">Ajouter la séance du jour</span>
+  html += `<div style="margin-top:16px; display:flex; align-items:center; gap:12px; background:#e8f5ec; border-radius:8px; padding:10px 14px;">
+    <button class="add-seance-btn" onclick="ajouterSeance('${creneauId}')" title="Ajouter une séance" style="flex-shrink:0;">+</button>
+    <div>
+      <div style="font-weight:700; font-size:13px; color:var(--ok);">Nouvelle séance</div>
+      <div style="font-size:11px; color:#6b6657;">Appuyer pour créer la feuille d'appel du jour</div>
+    </div>
   </div>`;
   html += `</div>`;
   return html;
