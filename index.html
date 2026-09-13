@@ -374,11 +374,42 @@ function normalizeRow(r){
   return o;
 }
 async function persist(sheet, mode='replace', rowsOverride=null){
-  try{
-    await Api.save(sheet, rowsOverride || DB[sheet], mode);
-  }catch(err){
-    alert("Erreur de sauvegarde Google Sheet : " + err.message);
+  const MAX_RETRIES = 3;
+  const rows = rowsOverride || DB[sheet];
+  for(let i=0; i<MAX_RETRIES; i++){
+    try{
+      await Api.save(sheet, rows, mode);
+      return; // succès
+    }catch(err){
+      if(i < MAX_RETRIES-1){
+        // Attendre avant de réessayer (1s, puis 2s)
+        await new Promise(r => setTimeout(r, 1000*(i+1)));
+      } else {
+        // Dernière tentative échouée : afficher l'erreur
+        console.error('Persist failed after', MAX_RETRIES, 'attempts:', err.message);
+        // Notification discrète en bas d'écran plutôt qu'une alerte bloquante
+        showToast('⚠️ Sauvegarde échouée — vérifiez votre connexion', 'error');
+      }
+    }
   }
+}
+
+function showToast(msg, type='info'){
+  const existing = document.getElementById('toast');
+  if(existing) existing.remove();
+  const t = document.createElement('div');
+  t.id = 'toast';
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'20px', left:'50%', transform:'translateX(-50%)',
+    background: type==='error' ? '#C0392B' : 'var(--court-dark)',
+    color:'#fff', padding:'10px 18px', borderRadius:'8px',
+    fontSize:'13px', fontWeight:'600', zIndex:'9999',
+    boxShadow:'0 4px 16px rgba(0,0,0,.25)', whiteSpace:'nowrap',
+    fontFamily:"'Work Sans',sans-serif"
+  });
+  document.body.appendChild(t);
+  setTimeout(()=>{ if(t.parentNode) t.remove(); }, 4000);
 }
 
 /* ====================== HELPERS MÉTIER ====================== */
@@ -767,9 +798,9 @@ function cancelSmsGroupe(){
   if(bar && !_smsFired){ bar.style.transition='none'; bar.style.width='0%'; }
 }
 function ouvrirModalSmsGroupe(creneauId){
-  const eleves = elevesDuCreneau(creneauId).filter(e=>e.telephone);
-  const numeros = eleves.map(e=>e.telephone.replace(/\s/g,'')).filter(Boolean);
-  const sansNum = elevesDuCreneau(creneauId).filter(e=>!e.telephone);
+  const eleves = elevesDuCreneau(creneauId);
+  const elevesAvecNum = eleves.filter(e=>e.telephone);
+  const sansNum = eleves.filter(e=>!e.telephone);
   const c = creneauById(creneauId);
 
   if(document.getElementById('smsModal')) document.getElementById('smsModal').remove();
@@ -777,46 +808,54 @@ function ouvrirModalSmsGroupe(creneauId){
   modal.id = 'smsModal';
   modal.innerHTML = `
     <div onclick="document.getElementById('smsModal').remove()" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9998;"></div>
-    <div style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;padding:22px;z-index:9999;max-height:85vh;overflow-y:auto;box-shadow:0 -4px 30px rgba(0,0,0,.2);">
-      <h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:18px;margin:0 0 4px;color:var(--court-dark);">💬 SMS au groupe</h3>
-      <p style="font-size:12px;color:#9b9684;margin:0 0 16px;">${c.jour} ${c.heure_debut} · ${eleves.length} numéro(s) disponible(s)${sansNum.length?` · ${sansNum.length} sans numéro`:''}</p>
+    <div style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:16px 16px 0 0;padding:20px;z-index:9999;max-height:90vh;overflow-y:auto;box-shadow:0 -4px 30px rgba(0,0,0,.2);">
+      <h3 style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:18px;margin:0 0 4px;color:var(--court-dark);">💬 Message au groupe</h3>
+      <p style="font-size:12px;color:#9b9684;margin:0 0 14px;">${c.jour} ${c.heure_debut} · ${elevesAvecNum.length} contact(s)${sansNum.length?` · ${sansNum.length} sans numéro`:''}</p>
 
-      <div class="field" style="margin-bottom:16px;">
-        <label>Message</label>
-        <textarea id="smsMsgText" rows="3" style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;resize:vertical;"></textarea>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Votre message</label>
+        <textarea id="smsMsgText" rows="3" style="width:100%;padding:10px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:inherit;resize:vertical;" placeholder="Écrivez votre message ici..."></textarea>
       </div>
 
-      ${numeros.length ? `
-      <div style="display:flex;gap:10px;margin-bottom:12px;">
-        <button class="btn btn-ok" style="flex:1;" onclick="envoyerSmsGroupe(${JSON.stringify(numeros)})">
-          📤 Envoyer le SMS (${numeros.length} destinataire${numeros.length>1?'s':''})
-        </button>
-      </div>
-      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="copierNumeros(${JSON.stringify(numeros)})">📋 Copier tous les numéros</button>
-      ` : `<p style="color:var(--danger);font-size:13px;">⚠️ Aucun numéro de téléphone renseigné dans ce groupe.</p>`}
+      ${elevesAvecNum.length ? `
+      <p style="font-size:12px;font-weight:600;color:#6b6657;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">Envoyer à chaque membre :</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        ${elevesAvecNum.map(e=>{
+          const tel = e.telephone.replace(/\s/g,'');
+          return `<div style="display:flex;gap:8px;align-items:center;background:#f7f4ec;border-radius:8px;padding:8px 12px;">
+            <div style="flex:1;font-size:13px;font-weight:600;">${e.prenom} ${e.nom}</div>
+            <a id="wa-${e.id}" href="#" onclick="envoyerWA('${tel}')" style="background:#25D366;color:#fff;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:5px;flex-shrink:0;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.004 2C6.465 2 2 6.464 2 12.003c0 1.762.463 3.414 1.27 4.847L2 22l5.29-1.247A9.963 9.963 0 0012.004 22C17.535 22 22 17.537 22 12.003 22 6.464 17.535 2 12.004 2zm0 18.201a8.183 8.183 0 01-4.428-1.302l-.317-.188-3.14.74.784-3.06-.207-.316A8.17 8.17 0 013.8 12.003c0-4.522 3.682-8.2 8.204-8.2 4.522 0 8.204 3.678 8.204 8.2 0 4.521-3.682 8.198-8.204 8.198z"/></svg>
+              WhatsApp
+            </a>
+            <a href="#" onclick="envoyerSMSIndividuel('${tel}')" style="background:#2a6496;color:#fff;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;flex-shrink:0;">SMS</a>
+          </div>`;
+        }).join('')}
+      </div>` : `<p style="color:var(--danger);font-size:13px;margin-bottom:14px;">⚠️ Aucun numéro renseigné dans ce groupe.</p>`}
 
-      ${sansNum.length ? `<p style="font-size:11px;color:#9b9684;margin-top:10px;">Sans numéro : ${sansNum.map(e=>e.prenom+' '+e.nom).join(', ')}</p>` : ''}
-      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px;" onclick="document.getElementById('smsModal').remove()">Fermer</button>
+      ${sansNum.length ? `<p style="font-size:11px;color:#9b9684;margin-bottom:12px;">Sans numéro : ${sansNum.map(e=>e.prenom+' '+e.nom).join(', ')}</p>` : ''}
+      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="document.getElementById('smsModal').remove()">Fermer</button>
     </div>`;
   document.body.appendChild(modal);
 }
-function setSmsMsg(msg){ const t = document.getElementById('smsMsgText'); if(t) t.value=msg; }
-function envoyerSmsGroupe(numeros){
-  const msg = encodeURIComponent((document.getElementById('smsMsgText').value || '').trim());
-  // iOS : séparateur virgule, Android : point-virgule — on essaie les deux via un lien <a>
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const sep = isIOS ? ',' : ';';
-  const nums = numeros.join(sep);
-  const url = `sms:${nums}${msg?'?body='+msg:''}`;
+
+function getMsg(){ return encodeURIComponent((document.getElementById('smsMsgText').value||'').trim()); }
+function envoyerWA(tel){
+  const msg = getMsg();
+  const url = `https://wa.me/${tel}${msg?'?text='+msg:''}`;
+  window.open(url, '_blank');
+}
+function envoyerSMSIndividuel(tel){
+  const msg = getMsg();
   const a = document.createElement('a');
-  a.href = url;
-  a.style.display = 'none';
+  a.href = `sms:${tel}${msg?'?body='+msg:''}`;
+  a.style.display='none';
   document.body.appendChild(a);
   a.click();
   setTimeout(()=>a.remove(), 500);
 }
 function copierNumeros(numeros){
-  navigator.clipboard.writeText(numeros.join(', ')).then(()=>alert('Numéros copiés dans le presse-papier !')).catch(()=>prompt('Copiez ces numéros :', numeros.join(', ')));
+  navigator.clipboard.writeText(numeros.join(', ')).then(()=>showToast('Numéros copiés !')).catch(()=>prompt('Copiez ces numéros :', numeros.join(', ')));
 }
 
 // Tooltip téléphone sur appui long (500ms)
