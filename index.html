@@ -824,11 +824,7 @@ function ouvrirModalSmsGroupe(creneauId){
           const tel = e.telephone.replace(/\s/g,'');
           return `<div style="display:flex;gap:8px;align-items:center;background:#f7f4ec;border-radius:8px;padding:8px 12px;">
             <div style="flex:1;font-size:13px;font-weight:600;">${e.prenom} ${e.nom}</div>
-            <a id="wa-${e.id}" href="#" onclick="envoyerWA('${tel}')" style="background:#25D366;color:#fff;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:5px;flex-shrink:0;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.004 2C6.465 2 2 6.464 2 12.003c0 1.762.463 3.414 1.27 4.847L2 22l5.29-1.247A9.963 9.963 0 0012.004 22C17.535 22 22 17.537 22 12.003 22 6.464 17.535 2 12.004 2zm0 18.201a8.183 8.183 0 01-4.428-1.302l-.317-.188-3.14.74.784-3.06-.207-.316A8.17 8.17 0 013.8 12.003c0-4.522 3.682-8.2 8.204-8.2 4.522 0 8.204 3.678 8.204 8.2 0 4.521-3.682 8.198-8.204 8.198z"/></svg>
-              WhatsApp
-            </a>
-            <a href="#" onclick="envoyerSMSIndividuel('${tel}')" style="background:#2a6496;color:#fff;padding:7px 12px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;flex-shrink:0;">SMS</a>
+            <a href="#" onclick="envoyerSMSIndividuel(''\x27)" style="background:#2a6496;color:#fff;padding:9px 16px;border-radius:7px;font-size:13px;font-weight:700;text-decoration:none;flex-shrink:0;">💬 SMS</a>
           </div>`;
         }).join('')}
       </div>` : `<p style="color:var(--danger);font-size:13px;margin-bottom:14px;">⚠️ Aucun numéro renseigné dans ce groupe.</p>`}
